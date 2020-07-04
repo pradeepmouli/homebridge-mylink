@@ -1,0 +1,25 @@
+{
+  "compileOnSave": true,
+
+  "compilerOptions": {
+    "target": "ES2018",
+    "lib": ["ESNext"],
+    "emitDecoratorMetadata": true,
+    "outDir": "./dist/",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "rootDir": "./src/",
+    "skipLibCheck": true,
+    "baseUrl": ".",
+
+    //"strict": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationDir": "./dist/",
+
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true
+  }
+}

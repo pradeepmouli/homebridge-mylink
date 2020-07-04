@@ -1,0 +1,136 @@
+{
+  "pluginAlias": "Somfy myLink",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Homebridge Plugin for Somfy myLink.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "platform": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "host": {
+        "type": "string"
+      },
+      "systemID": {
+        "type": "string"
+      },
+      "commandDelay": {
+        "type": "number"
+      },
+      "targets": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Target"
+        }
+      }
+    },
+    "required": ["platform", "host", "systemID", "targets"],
+    "definitions": {
+      "PlatformConfig": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "default": "Somfy myLink"
+          },
+          "name": {
+            "type": "string",
+            "default": "myLink"
+          },
+          "host": {
+            "type": "string"
+          },
+          "systemID": {
+            "type": "string"
+          },
+          "commandDelay": {
+            "type": "number",
+            "default": 500
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Target"
+            }
+          }
+        },
+        "required": ["platform", "host", "systemID", "targets"],
+        "additionalProperties": false
+      },
+      "Target": {
+        "type": "object",
+        "properties": {
+          "ID": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "timeToOpen": {
+            "type": "number"
+          },
+          "orientation": {
+            "type": "object",
+            "properties": {
+              "open": {
+                "$ref": "#/definitions/Commands"
+              },
+              "closed": {
+                "$ref": "#/definitions/Commands"
+              }
+            },
+            "required": ["open", "closed"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["ID", "name", "timeToOpen"],
+        "additionalProperties": false
+      },
+      "Commands": {
+        "type": "string",
+        "enum": ["up", "down"]
+      }
+    }
+  },
+  "layout": [
+    {"key": "name", "default": "myLink", "required": true},
+    {"key": "host", "format": "hostname", "required": true},
+    {"key": "systemID", "required": true},
+    {
+      "key": "commandDelay",
+      "title": "Command Delay (in milliseconds)",
+      "required": true
+    },
+    {
+      "type": "fieldset",
+      "title": "Targets",
+      "items": [
+        {
+          "key": "targets",
+          "type": "array",
+          "notitle": true,
+          "items": [
+            {
+              "type": "fieldset",
+              "items": [
+                {
+                  "key": "targets[].ID",
+                  "title": "ID"
+                },
+                {"key": "targets[].name"},
+                {
+                  "key": "targets[].timeToOpen",
+                  "title": "Time to Open (in seconds)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

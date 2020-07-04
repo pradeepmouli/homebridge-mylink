@@ -1,0 +1,37 @@
+{
+  "platforms": [
+    {
+      "platform": "Somfy myLink",
+      "ipAddress": "192.168.1.195",
+      "systemID": "8285S",
+      "targets": [
+        {
+          "targetID": "CC10A853.1",
+          "name": "Living Room Shades Left"
+        },
+        {
+          "targetID": "CC10A853.2",
+          "name": "Living Room Shades Middle"
+        },
+        {
+          "targetID": "CC10A853.3",
+          "name": "Living Room Shades Right",
+          "orientation": {
+            "closed": "stop",
+            "middle": "down",
+            "opened": "up"
+          }
+        },
+        {
+          "targetID": "CC10A853.4",
+          "name": "Master Bedroom Curtains",
+          "orientation": {
+            "closed": "stop",
+            "middle": "down",
+            "opened": "up"
+          }
+        }
+      ]
+    }
+  ]
+}
