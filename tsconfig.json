@@ -3,7 +3,7 @@
 
   "compilerOptions": {
     "target": "ES2018",
-    "lib": ["ESNext"],
+ 
     "emitDecoratorMetadata": true,
     "outDir": "./dist/",
     "module": "CommonJS",

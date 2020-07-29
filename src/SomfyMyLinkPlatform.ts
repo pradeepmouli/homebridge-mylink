@@ -5,13 +5,14 @@ import {TargetConfig} from './TargetConfig';
 import {SomfyMyLinkPlatformConfig} from './SomfyMyLinkPlatformConfig';
 import {SomfyMyLinkTargetAccessory} from './SomfyMyLinkTargetAccessory';
 import {PlatformBase, AccessoryBase} from 'hb-kit';
+import { TcpNetConnectOpts } from 'net';
 export class SomfyMyLinkPlatform extends PlatformBase<
   SomfyMyLinkTargetAccessory,
   SomfyMyLinkPlatformConfig
 > {
   async buildAccessories(): Promise<SomfyMyLinkTargetAccessory[]> {
     try {
-      this.pluginName = 'homebridge-mylink';
+
 
       this.client = new SomfySynergy(
         this.config.systemID,
@@ -57,10 +58,10 @@ export class SomfyMyLinkPlatform extends PlatformBase<
         let target = new Target(this.synergy.client, {
           targetID: t.ID,
           name: t.name,
-          type: 0,
+          type: 0
         });
 
-        if (t) {
+        if (target) {
           // target.name = t.name;
           target.timeToOpen = t.timeToOpen ?? 30;
           target.orientation = t.orientation;

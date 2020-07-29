@@ -1,5 +1,5 @@
 export enum Direction {
   Opening = 1,
-  Closing = 2,
-  Stopped = 0,
+  Closing = 0,
+  Stopped = 2,
 }

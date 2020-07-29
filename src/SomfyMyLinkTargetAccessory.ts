@@ -1,8 +1,9 @@
 import * as HB from 'homebridge';
-import {SomfySynergyPlatform, Target} from '@pmouli/somfy-synergy';
+import { SomfySynergyPlatform, Target, Commands } from '@pmouli/somfy-synergy';
 import {Direction} from './Commands';
 import {SomfyMyLinkPlatform} from './SomfyMyLinkPlatform';
-
+import {callbackify} from 'util';
+import {Socket} from 'dgram';
 import {
   UUIDGen,
   Service,
@@ -18,7 +19,7 @@ import {promisify} from 'util';
 export class SomfyMyLinkTargetAccessory extends AccessoryBase<
   HB.Categories.WINDOW_COVERING
 > {
-  currentTask: Promise<any>;
+
   pendingTargetValue: number;
   queue: number[];
   target: Target & TargetConfig;
@@ -26,31 +27,32 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
   name: string;
 
   requests: number[];
-  direction: Direction = 0;
+  direction: Direction  = Direction.Stopped;
   services: HB.Service[];
   primaryService: HB.Service;
   category: HB.Categories.WINDOW_COVERING;
-  isProcessing: boolean;
+  isProcessing: boolean = false;
   constructor(platform: SomfyMyLinkPlatform, target: Target & TargetConfig) {
     super(
       platform,
-      PlatformBase.cloneLogger(
-        platform.logger,
-        `Target ${target.ID} (${target.name})`,
-        HB.LogLevel.DEBUG,
-      ),
+      platform.logger,
+
+      target.name,
+      target.displayName, target.ID
     );
     const name = target.name;
-    const ID = target.ID;
-    const displayName = `${name}`;
-    this.UUID = UUIDGen.generate(`mylink.target.${ID}`);
+    //const ID = target.ID;
+    //const displayName = `${name}`;
+    //this.UUID = UUIDGen.generate(`mylink.target.${ID}`);
 
     this.category = HB.Categories.WINDOW_COVERING;
-    this.currentTask = Promise.resolve({});
+
+
     // Homebridge requires these.
-    this.name = displayName;
+    this.name = target.name;
 
     this.target = target;
+
 
     this.synergy = platform.synergy;
     this.requests = [];
@@ -60,6 +62,23 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
 
   getServices() {
     return this.services;
+  }
+
+  handleCommandTriggered(commands: Commands)
+  {
+      switch (commands) {
+        case Commands.Down:
+          this.primaryService.updateCharacteristic(Characteristic.PositionState,Characteristic.PositionState.DECREASING);
+          break;
+        case Commands.Up:
+          this.primaryService.updateCharacteristic(Characteristic.PositionState,Characteristic.PositionState.INCREASING);
+          break;
+        case Commands.Stop:
+          this.primaryService.updateCharacteristic(Characteristic.PositionState,Characteristic.PositionState.STOPPED);
+          break;
+        default:
+          break;
+      }
   }
 
   setHoldPosition(targetValue: number, callback: (arg0?: any) => void) {
@@ -86,8 +105,8 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
 
   async scheduleRequest(targetPosition: number) {
     this.logger(
-      'Received request to update position of %s to %s.',
-      targetPosition,
+      'Received request to update position to',
+      targetPosition
     );
     this.requests.unshift(targetPosition);
     if (!this.isProcessing) {
@@ -107,18 +126,17 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
 
   configure(accessory?: HB.PlatformAccessory) {
     let s = super.configure(accessory);
-    this.buildServices();
+  
     return s;
   }
 
   async processRequests(lastPosition: number) {
-    this.primaryService.setCharacteristic(
+    this.primaryService.updateCharacteristic(
       Characteristic.CurrentPosition,
       lastPosition,
     );
-    if (this.requests.length > 0) {
-      const requestedPosition = this.requests.pop();
-
+    const requestedPosition = this.requests.pop();
+    if (requestedPosition != undefined && requestedPosition != lastPosition) {
       const newDirection =
         requestedPosition < lastPosition
           ? Direction.Closing
@@ -136,6 +154,7 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
         'it will take ' + timeToWait + ' seconds.',
       );
       if (newDirection != this.direction) {
+
         this.logger(
           'Changing direction from %s to %s. Sending command',
           Direction[this.direction],
@@ -144,17 +163,15 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
         this.direction = newDirection;
 
         try {
-          let response = await Promise.any([
-            this.direction === Direction.Opening
+          let response = await await ( this.direction === Direction.Opening
               ? this.target.moveUp()
-              : this.target.moveDown(),
-            setTimeoutPromise(30000),
-          ]);
+              : this.direction === Direction.Closing ? this.target.moveDown() : this.target.stop());
           this.logger('Command response %s', response);
         } catch (error) {
           this.logger.error(error);
           this.isProcessing = false;
           this.direction = Direction.Stopped;
+          this.primaryService.updateCharacteristic(Characteristic.PositionState,Characteristic.PositionState.STOPPED);
           return Promise.reject(error);
         }
       }
@@ -163,20 +180,31 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
         this.processRequests.bind(this, requestedPosition),
         timeToWait * 1000 + 500 /*delay*/,
       );
-    } else {
+    }
+    else if(requestedPosition === undefined){
       this.logger('No more requests to process. Stopping.');
       this.isProcessing = false;
       this.direction = Direction.Stopped;
+
       if (lastPosition !== 100 && lastPosition !== 0) {
         this.logger('Sending stop command.');
         await this.target.stop();
       }
+      else
+      {
+        this.primaryService.updateCharacteristic(Characteristic.PositionState,Characteristic.PositionState.STOPPED);
+      }
+    }
+    else
+    {
+        this.processRequests(requestedPosition);
     }
     return Promise.resolve();
   }
 
-  async setPosition(targetValue: number) {
-    return this.scheduleRequest(targetValue);
+  async setPosition(targetValue: number) : Promise<number>{
+    await this.scheduleRequest(targetValue);
+    return targetValue;
   }
 
   buildServices() {
@@ -194,13 +222,11 @@ export class SomfyMyLinkTargetAccessory extends AccessoryBase<
     //const holdPosition = service.getCharacteristic(Characteristic.HoldPosition);
     //holdPosition.updateValue(true);
     // holdPosition.on('set', this.setHoldPosition.bind(this));
-    const currentPosition = service.getCharacteristic(
-      Characteristic.CurrentPosition,
-    );
+
 
     service
       .getCharacteristic(Characteristic.TargetPosition)
-      .onSet(this.setPosition.bind(this))
+      .on('set',((p,q) => this.setPosition(p).handleWith(q)).bind(this))
       .setProps({minStep: 10});
 
     this.primaryService = service;

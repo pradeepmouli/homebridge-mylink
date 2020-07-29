@@ -1,5 +1,7 @@
 import {TargetConfig} from './TargetConfig';
 import {TcpNetConnectOpts} from 'net';
+import {SocketOptions}  from 'dgram';
+
 
 export interface SomfyMyLinkPlatformConfig {
   platform: string;
@@ -8,7 +10,9 @@ export interface SomfyMyLinkPlatformConfig {
   host: string;
   systemID: string;
 
-  connectionOptions: TcpNetConnectOpts;
+
+
+  connectionOptions: Partial<TcpNetConnectOpts> & Partial<SocketOptions> ;
 
   poolOptions: {usePool: boolean; max: number; min: number};
 
